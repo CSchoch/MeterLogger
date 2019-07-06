@@ -1,0 +1,31 @@
+#######################################
+# Syntax Coloring Map For SMLParser
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+SMLParser	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+Begin	KEYWORD2
+loop	KEYWORD2
+getTotalConsumption  KEYWORD2
+getTarif1Consumption  KEYWORD2
+getTarif2Consumption	KEYWORD2
+getTotalSupply	KEYWORD2
+getTarif1Supply	KEYWORD2
+getTarif2Supply	KEYWORD2
+getActualPower	KEYWORD2
+getAvailable	KEYWORD2
+resetAvailable	KEYWORD2
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
