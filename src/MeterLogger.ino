@@ -296,7 +296,7 @@ void loop() {
 
     lastUpdated = millis();
   }
-  else if (lastUpdated < 500) {
+  else if (millis() - lastUpdated < 500) {
     update_led(500, 500);
   }
   else{
