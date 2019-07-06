@@ -1,4 +1,3 @@
-
 /*
    Program for isolating and publishing smartmeter sml messages to a mqtt broker by using a esp32.
 */
@@ -25,8 +24,8 @@
 //#include "Config.h" // make your own config file or remove this line and use the following lines
 const char* clientId = "Energy";
 const char* mqtt_server = "192.168.1.21";
-#include "WifiCredentials.h"
-#include "OTACredentials.h"
+#include "WifiCredentials.h" // const char* ssid = "MySSID"; const char* WifiPassword = "MyPw";
+#include "OTACredentials.h" // const char* OtaPassword = "MyPw";
 IPAddress ip(192, 168, 1, 7); // Static IP
 IPAddress dns(192, 168, 1, 1); // most likely your router
 IPAddress gateway(192, 168, 1, 1); // most likely your router
@@ -63,7 +62,7 @@ void setup_wifi() {
   DEBUGPRINTLNNONE(ssid);
   WiFi.config(ip, dns, gateway, subnet);
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+  WiFi.begin(ssid, WifiPassword);
   int counter = 0;
   while (WiFi.status() != WL_CONNECTED) {
     DEBUGPRINTNONE(".");
@@ -82,7 +81,7 @@ void setup_wifi() {
         update_led(100, 100);
         delay(10);
       }
-      WiFi.begin(ssid, password);
+      WiFi.begin(ssid, WifiPassword);
     }
   }
   DEBUGPRINTLNNONE("WiFi connected");
@@ -149,7 +148,7 @@ void wifiReconnect() {
   DEBUGPRINTNONE("Reconnecting to ");
   DEBUGPRINTLNNONE(ssid);
   int counter = 0;
-  WiFi.begin(ssid, password);
+  WiFi.begin(ssid, WifiPassword);
   while (WiFi.status() != WL_CONNECTED and counter < 20) {
     DEBUGPRINTNONE(".");
     counter ++;
@@ -295,92 +294,6 @@ void loop() {
     delay(100);
     update_led(500, 500);
 
-    //  topic = "/Solar/actualPower";
-    //  path = (char *) malloc(1 + strlen(clientId) + strlen(topic) );
-    //  strcpy(path, clientId);
-    //  strcat(path, topic);
-    //  sprintf (Data, "%ld", SolarMeter.getActualPower());
-    //  mqttClient.publish(path, Data, true);
-    //  free(path);
-    //  DEBUGPRINTDEBUG(topic);
-    //  DEBUGPRINTDEBUG(" ");
-    //  DEBUGPRINTLNDEBUG(Data);
-
-    //  delay(100);
-    //  update_led(500, 500);
-
-    //  topic = "/Solar/totalConsumption";
-    //  path = (char *) malloc(1 + strlen(clientId) + strlen(topic) );
-    //  strcpy(path, clientId);
-    //  strcat(path, topic);
-    //  sprintf (Data, "%lf", SolarMeter.getTotalConsumption());
-    //  mqttClient.publish(path, Data, true);
-    //  free(path);
-    //  DEBUGPRINTDEBUG(topic);
-    //  DEBUGPRINTDEBUG(" ");
-    //  DEBUGPRINTLNDEBUG(Data);
-
-    //  delay(100);
-    //  update_led(500, 500);
-
-    //  topic = "/Solar/totalSupply";
-    //  path = (char *) malloc(1 + strlen(clientId) + strlen(topic) );
-    //  strcpy(path, clientId);
-    //  strcat(path, topic);
-    //  sprintf (Data, "%lf", SolarMeter.getTotalSupply());
-    //  mqttClient.publish(path, Data, true);
-    //  free(path);
-    //  DEBUGPRINTDEBUG(topic);
-    //  DEBUGPRINTDEBUG(" ");
-    //  DEBUGPRINTLNDEBUG(Data);
-
-    //  delay(100);
-    //  update_led(500, 500);
-
-    //  topic = "/Outfeed/actualPower";
-    //  path = (char *) malloc(1 + strlen(clientId) + strlen(topic) );
-    //  strcpy(path, clientId);
-    //  strcat(path, topic);
-    //  sprintf (Data, "%ld", OutfeedMeter.getActualPower());
-    //  mqttClient.publish(path, Data, true);
-    //  free(path);
-    //  DEBUGPRINTDEBUG(topic);
-    //  DEBUGPRINTDEBUG(" ");
-    //  DEBUGPRINTLNDEBUG(Data);
-
-    //  delay(100);
-    //  update_led(500, 500);
-
-    //  topic = "/Outfeed/totalConsumption";
-    //  path = (char *) malloc(1 + strlen(clientId) + strlen(topic) );
-    //  strcpy(path, clientId);
-    //  strcat(path, topic);
-    //  sprintf (Data, "%lf", OutfeedMeter.getTotalConsumption());
-    //  mqttClient.publish(path, Data, true);
-    //  free(path);
-    //  DEBUGPRINTDEBUG(topic);
-    //  DEBUGPRINTDEBUG(" ");
-    //  DEBUGPRINTLNDEBUG(Data);
-
-    //  delay(100);
-    //  update_led(500, 500);
-
-    //  topic = "/Outfeed/totalSupply";
-    //  path = (char *) malloc(1 + strlen(clientId) + strlen(topic) );
-    //  strcpy(path, clientId);
-    //  strcat(path, topic);
-    //  sprintf (Data, "%lf", OutfeedMeter.getTotalSupply());
-    //  mqttClient.publish(path, Data, true);
-    //  free(path);
-    //  DEBUGPRINTDEBUG(topic);
-    //  DEBUGPRINTDEBUG(" ");
-    //  DEBUGPRINTLNDEBUG(Data);
-
-    // delay(100);
-
-    // stateLed = LOW;
-    // digitalWrite(LED_PIN, stateLed);
-
     lastUpdated = millis();
   }
   else if (lastUpdated < 500) {
@@ -389,7 +302,6 @@ void loop() {
   else{
     update_led(100, 1000);
   }
-
 
   if ((!updateActive && enableUpdate) || (millis() - lastUpdated >= 60000))  {
 
