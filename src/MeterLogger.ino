@@ -98,12 +98,14 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   DEBUGPRINTLNNONE("NewMessage");
   DEBUGPRINTLNNONE(topic);
   DEBUGPRINTLNNONE(length);
+  free(path);
   enableUpdate = true;
   topic = "/enableUpdateAck";
   path = (char *) malloc(1 + strlen(clientId) + strlen(topic) );
   strcpy(path, clientId);
   strcat(path, topic);
   mqttClient.publish(path, "true");
+  free(path);
   delay(100);
   //}
 }
@@ -125,6 +127,7 @@ void mqttReconnect() {
       strcat(path, topic);
       DEBUGPRINTLNNONE(path);
       mqttClient.subscribe(path);
+      free(path);
     } else {
       DEBUGPRINTNONE("failed, rc=");
       DEBUGPRINTNONE(mqttClient.state());
@@ -284,8 +287,9 @@ void loop() {
     strcpy(path, clientId);
     strcat(path, topic);
     if (!mqttClient.publish(path, Data, true)){
-      DEBUGPRINTFNONE("MQTT publish failed");
+      DEBUGPRINTLNNONE("MQTT publish failed");
     }
+    free(path);
 
     DEBUGPRINTDEBUG(topic);
     DEBUGPRINTDEBUG(" ");
