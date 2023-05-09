@@ -10,7 +10,7 @@
 class SMLParser
 {
 public:
-    // The constructor for SMLParser requires no arguments
+    // The constructor for SMLParser requires
     SMLParser(int uart_nr);
 
     // Initialize SMLParser

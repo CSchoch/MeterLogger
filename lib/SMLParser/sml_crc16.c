@@ -46,16 +46,16 @@ static uint16_t fcstab [256] = { 0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad,
 };
 
 uint16_t sml_crc16_calculate(unsigned char *cp, int len) {
-	uint16_t fcs = crc16_ccitt_start;
+	 uint16_t fcs = crc16_ccitt_start;
 	
-	while (len--) {
-		fcs = (fcs >> 8) ^ fcstab[(fcs ^ *cp++) & 0xff];
-	}
+	 while (len--) {
+	 	fcs = fcstab[(*cp++ ^ fcs) & 0xff] ^ (fcs >> 8);
+	 }
 	
-	fcs ^= crc16_ccitt_xorout;
-	fcs = ((fcs & 0xff) << 8) | ((fcs & 0xff00) >> 8);
+	 fcs ^= crc16_ccitt_xorout;
+	 fcs = ((fcs & 0xff) << 8) | ((fcs & 0xff00) >> 8);
 
-	return fcs;
+	 return fcs;
 }
 
 /*

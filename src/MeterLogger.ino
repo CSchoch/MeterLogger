@@ -8,6 +8,7 @@
 #define SOLAR_RX_PIN 12 // for NodeMCU: GPIO4 = D1 
 #define SOLAR_TX_PIN 27 // for NodeMCU: GPIO5 = D2
 #define DEBUGLEVEL NONE
+#define MAX_PACKET_SIZE 256 // Max data packet size
 
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
 #define TIME_TO_SLEEP  10       /* Time ESP32 will go to sleep (in seconds) */
@@ -184,6 +185,7 @@ void setup() {
   setup_wifi();
   mqttClient.setServer(mqtt_server, 1883);
   mqttClient.setCallback(mqttCallback);
+  mqttClient.setBufferSize(MAX_PACKET_SIZE);
   // --------------------------------------------------------------------- OTA
 
   // Port defaults to 8266
@@ -227,7 +229,7 @@ void setup() {
 }
 
 void loop() {
-  char Data[256];
+  char Data[MAX_PACKET_SIZE];
   ArduinoOTA.handle();
   if (!mqttClient.connected()) {
     mqttReconnect();

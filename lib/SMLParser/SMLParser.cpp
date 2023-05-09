@@ -394,10 +394,10 @@ int arrSize = 2 * smlIndex + 1;
   //DEBUGPRINTDEBUG(_uart_nr);
   //DEBUGPRINTDEBUG(" ");
   DEBUGPRINTLNDEBUG(smlMessageAsString); // for debuging
-  //DEBUGPRINTDEBUG(smlMessageAsString[smlIndex - 1], HEX);
-  //DEBUGPRINTLNDEBUG(smlMessageAsString[smlIndex - 0], HEX);
-  //DEBUGPRINTLNDEBUG(sml_crc16_calculate(smlMessage, smlIndex - 2), HEX);
-  //DEBUGPRINTLNDEBUG(smlIndex);
+  DEBUGPRINTDEBUG(smlMessageAsString[smlIndex - 1], HEX);
+  DEBUGPRINTLNDEBUG(smlMessageAsString[smlIndex - 0], HEX);
+  DEBUGPRINTLNDEBUG(sml_crc16_calculate(smlMessage, smlIndex - 2), HEX);
+  DEBUGPRINTLNDEBUG(smlIndex);
 
   smlIndex = 0;
   stage = 0; // start over
