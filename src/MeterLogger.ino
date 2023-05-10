@@ -175,10 +175,10 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   DEBUGPRINTLNNONE("\nHardware serial started");
   DEBUGPRINTLNNONE(bootCount);
-  OutfeedMeter.Begin(9600, SERIAL_8N1, OUTFEED_RX_PIN, OUTFEED_TX_PIN, true);
+  OutfeedMeter.Begin(9600, SERIAL_8N1, OUTFEED_RX_PIN, OUTFEED_TX_PIN, false);
   //pinMode(OUTFEED_RX_PIN, INPUT_PULLDOWN);
   DEBUGPRINTLNNONE("\nOutfeedMeter serial started");
-  SolarMeter.Begin(9600, SERIAL_8N1, SOLAR_RX_PIN, SOLAR_TX_PIN, true);
+  SolarMeter.Begin(9600, SERIAL_8N1, SOLAR_RX_PIN, SOLAR_TX_PIN, false);
   //pinMode(SOLAR_RX_PIN, INPUT_PULLDOWN);
   DEBUGPRINTLNNONE("\nSolarMeter serial started");
   setup_wifi();
