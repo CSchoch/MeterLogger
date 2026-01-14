@@ -102,22 +102,20 @@ bool setup_wifi() {
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  char* topic1 = "/enableUpdate";
-  char* path = (char *) malloc(1 + strlen(clientId) + strlen(topic1) );
-  strcpy(path, clientId);
-  strcat(path, topic1);
+  char path[64];  // Stack-allocated buffer to avoid heap fragmentation
+
+  // Build expected topic path
+  snprintf(path, sizeof(path), "%s/enableUpdate", clientId);
   //if (topic == path) {
   DEBUGPRINTLNNONE("NewMessage");
   DEBUGPRINTLNNONE(topic);
   DEBUGPRINTLNNONE(length);
-  free(path);
+
   enableUpdate = true;
-  topic = "/enableUpdateAck";
-  path = (char *) malloc(1 + strlen(clientId) + strlen(topic) );
-  strcpy(path, clientId);
-  strcat(path, topic);
+
+  // Build acknowledgment topic path
+  snprintf(path, sizeof(path), "%s/enableUpdateAck", clientId);
   mqttClient.publish(path, "true");
-  free(path);
   delay(100);
   //}
 }
@@ -139,13 +137,10 @@ bool mqttReconnect() {
     if (mqttClient.connect(clientId)) {
       DEBUGPRINTLNNONE("connected");
       // ... and resubscribe
-      char* topic = "/enableUpdate";
-      char* path = (char *) malloc(1 + strlen(clientId) + strlen(topic) );
-      strcpy(path, clientId);
-      strcat(path, topic);
+      char path[64];  // Stack-allocated buffer to avoid heap fragmentation
+      snprintf(path, sizeof(path), "%s/enableUpdate", clientId);
       DEBUGPRINTLNNONE(path);
       mqttClient.subscribe(path);
-      free(path);
       return true;
     } else {
       retryCount++;
@@ -270,7 +265,7 @@ void setup() {
 }
 
 void loop() {
-  char Data[256];
+  char Data[512];  // Increased buffer size to prevent overflow
   ArduinoOTA.handle();
 
   // Attempt MQTT reconnection if disconnected
@@ -293,9 +288,15 @@ void loop() {
     DEBUGPRINTNONE("Eigenverbrauch: ");
     DEBUGPRINTNONE(value);
     DEBUGPRINTNONE("kWh ");
-    value = (value / SolarMeter.getTotalSupply()) * 100;
-    DEBUGPRINTNONE(value);
-    DEBUGPRINTLNNONE("%");
+    // Avoid division by zero
+    double totalSupply = SolarMeter.getTotalSupply();
+    if (totalSupply > 0.001) {  // Use small threshold to avoid floating point issues
+      value = (value / totalSupply) * 100;
+      DEBUGPRINTNONE(value);
+      DEBUGPRINTLNNONE("%");
+    } else {
+      DEBUGPRINTLNNONE("N/A (no supply data)");
+    }
 
     value = SolarMeter.getActualPower();
     DEBUGPRINTNONE("Erzeugung: ");
@@ -331,18 +332,20 @@ void loop() {
     sprintf(Data, "%lf", SolarMeter.getTotalSupply());
     Solar["totalSupply"] = Data;
 
-    serializeJson(doc, Data, sizeof(Data));
+    // Serialize JSON with overflow checking
+    size_t bytesWritten = serializeJson(doc, Data, sizeof(Data));
+    if (bytesWritten >= sizeof(Data)) {
+      DEBUGPRINTLNNONE("WARNING: JSON data truncated - buffer too small");
+    }
 
     // Only attempt to publish if MQTT is connected
     if (mqttConnected) {
-      char* topic = "/MeterData";
-      char* path = (char *)malloc(1 + strlen(clientId) + strlen(topic));
-      strcpy(path, clientId);
-      strcat(path, topic);
+      char topic[] = "/MeterData";
+      char path[64];  // Stack-allocated buffer to avoid heap fragmentation
+      snprintf(path, sizeof(path), "%s%s", clientId, topic);
       if (!mqttClient.publish(path, Data, true)){
         DEBUGPRINTLNNONE("MQTT publish failed");
       }
-      free(path);
 
       DEBUGPRINTDEBUG(topic);
       DEBUGPRINTDEBUG(" ");
