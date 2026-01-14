@@ -56,7 +56,7 @@ void update_led(unsigned long intervallHigh, unsigned long intervallLow) {
   digitalWrite(LED_PIN, stateLed);
 }
 
-void setup_wifi() {
+bool setup_wifi() {
   delay(10);
   DEBUGPRINTNONE("Connecting to ");
   DEBUGPRINTLNNONE(ssid);
@@ -64,17 +64,28 @@ void setup_wifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, WifiPassword);
   int counter = 0;
+  int retryAttempts = 0;
+  const int MAX_WIFI_RETRIES = 3; // Maximum number of full retry cycles
+
   while (WiFi.status() != WL_CONNECTED) {
     DEBUGPRINTNONE(".");
-    counter ++;
+    counter++;
     unsigned long timer = millis();
     while (millis() - timer <= 500) {
       update_led(100, 100);
     }
-    //delay(500);
+
     if (counter >= 20) {
+      retryAttempts++;
+      if (retryAttempts >= MAX_WIFI_RETRIES) {
+        DEBUGPRINTLNNONE("WiFi connection failed after maximum retries");
+        return false;
+      }
       counter = 0;
-      DEBUGPRINTLNNONE("Retry");
+      DEBUGPRINTNONE("Retry attempt ");
+      DEBUGPRINTNONE(retryAttempts);
+      DEBUGPRINTNONE("/");
+      DEBUGPRINTLNNONE(MAX_WIFI_RETRIES);
       WiFi.disconnect();
       while (WiFi.status() == WL_CONNECTED) {
         DEBUGPRINTNONE(".");
@@ -87,6 +98,7 @@ void setup_wifi() {
   DEBUGPRINTLNNONE("WiFi connected");
   DEBUGPRINTNONE("IP address: ");
   DEBUGPRINTLNNONE(WiFi.localIP());
+  return true;
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
@@ -110,11 +122,17 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   //}
 }
 
-void mqttReconnect() {
-  // Loop until we're reconnected
-  while (!mqttClient.connected()) {
+bool mqttReconnect() {
+  // Try to reconnect with maximum retry attempts
+  const int MAX_MQTT_RETRIES = 5;
+  int retryCount = 0;
+
+  while (!mqttClient.connected() && retryCount < MAX_MQTT_RETRIES) {
     if (WiFi.status() != WL_CONNECTED) {
-      wifiReconnect();
+      if (!wifiReconnect()) {
+        DEBUGPRINTLNNONE("WiFi reconnection failed, aborting MQTT reconnect");
+        return false;
+      }
     }
     DEBUGPRINTNONE("Attempting MQTT connection...");
     // Attempt to connect
@@ -128,21 +146,31 @@ void mqttReconnect() {
       DEBUGPRINTLNNONE(path);
       mqttClient.subscribe(path);
       free(path);
+      return true;
     } else {
+      retryCount++;
       DEBUGPRINTNONE("failed, rc=");
       DEBUGPRINTNONE(mqttClient.state());
-      DEBUGPRINTLNNONE(" try again in 1 seconds");
-      // Wait 5 seconds before retrying
+      DEBUGPRINTNONE(" retry ");
+      DEBUGPRINTNONE(retryCount);
+      DEBUGPRINTNONE("/");
+      DEBUGPRINTLNNONE(MAX_MQTT_RETRIES);
+      // Wait 1 second before retrying
       unsigned long timer = millis();
       while (millis() - timer <= 1000) {
         update_led(250, 250);
       }
-      //delay(1000);
     }
   }
+
+  if (!mqttClient.connected()) {
+    DEBUGPRINTLNNONE("MQTT reconnection failed after max retries");
+    return false;
+  }
+  return true;
 }
 
-void wifiReconnect() {
+bool wifiReconnect() {
   WiFi.disconnect();
   while (WiFi.status() == WL_CONNECTED) {
     DEBUGPRINTNONE(".");
@@ -152,18 +180,25 @@ void wifiReconnect() {
   DEBUGPRINTLNNONE(ssid);
   int counter = 0;
   WiFi.begin(ssid, WifiPassword);
-  while (WiFi.status() != WL_CONNECTED and counter < 20) {
+  while (WiFi.status() != WL_CONNECTED && counter < 20) {
     DEBUGPRINTNONE(".");
-    counter ++;
+    counter++;
     unsigned long timer = millis();
     while (millis() - timer <= 500) {
       update_led(100, 100);
     }
-    //delay(500);
   }
-  DEBUGPRINTLNNONE("WiFi connected");
-  DEBUGPRINTNONE("IP address: ");
-  DEBUGPRINTLNNONE(WiFi.localIP());
+
+  // Check if actually connected after loop
+  if (WiFi.status() == WL_CONNECTED) {
+    DEBUGPRINTLNNONE("WiFi connected");
+    DEBUGPRINTNONE("IP address: ");
+    DEBUGPRINTLNNONE(WiFi.localIP());
+    return true;
+  } else {
+    DEBUGPRINTLNNONE("WiFi connection failed after 20 attempts");
+    return false;
+  }
 }
 
 void setup() {
@@ -181,7 +216,15 @@ void setup() {
   SolarMeter.Begin(9600, SERIAL_8N1, SOLAR_RX_PIN, SOLAR_TX_PIN, false);
   //pinMode(SOLAR_RX_PIN, INPUT_PULLDOWN);
   DEBUGPRINTLNNONE("\nSolarMeter serial started");
-  setup_wifi();
+
+  // Attempt WiFi connection - if it fails, device will retry on next boot cycle
+  if (!setup_wifi()) {
+    DEBUGPRINTLNNONE("CRITICAL: WiFi setup failed. Entering deep sleep for retry...");
+    esp_sleep_enable_timer_wakeup(10 * uS_TO_S_FACTOR);
+    delay(1000);
+    esp_deep_sleep_start();
+  }
+
   mqttClient.setServer(mqtt_server, 1883);
   mqttClient.setCallback(mqttCallback);
   // --------------------------------------------------------------------- OTA
@@ -229,10 +272,17 @@ void setup() {
 void loop() {
   char Data[256];
   ArduinoOTA.handle();
-  if (!mqttClient.connected()) {
-    mqttReconnect();
+
+  // Attempt MQTT reconnection if disconnected
+  bool mqttConnected = mqttClient.connected();
+  if (!mqttConnected) {
+    mqttConnected = mqttReconnect();
   }
-  mqttClient.loop();
+
+  // Only process MQTT messages if connected
+  if (mqttConnected) {
+    mqttClient.loop();
+  }
 
   OutfeedMeter.loop();
   SolarMeter.loop();
@@ -282,18 +332,24 @@ void loop() {
     Solar["totalSupply"] = Data;
 
     serializeJson(doc, Data, sizeof(Data));
-    char* topic = "/MeterData";
-    char* path = (char *)malloc(1 + strlen(clientId) + strlen(topic));
-    strcpy(path, clientId);
-    strcat(path, topic);
-    if (!mqttClient.publish(path, Data, true)){
-      DEBUGPRINTLNNONE("MQTT publish failed");
-    }
-    free(path);
 
-    DEBUGPRINTDEBUG(topic);
-    DEBUGPRINTDEBUG(" ");
-    DEBUGPRINTLNDEBUG(Data);
+    // Only attempt to publish if MQTT is connected
+    if (mqttConnected) {
+      char* topic = "/MeterData";
+      char* path = (char *)malloc(1 + strlen(clientId) + strlen(topic));
+      strcpy(path, clientId);
+      strcat(path, topic);
+      if (!mqttClient.publish(path, Data, true)){
+        DEBUGPRINTLNNONE("MQTT publish failed");
+      }
+      free(path);
+
+      DEBUGPRINTDEBUG(topic);
+      DEBUGPRINTDEBUG(" ");
+      DEBUGPRINTLNDEBUG(Data);
+    } else {
+      DEBUGPRINTLNNONE("Skipping MQTT publish - not connected");
+    }
 
     delay(100);
     update_led(500, 500);
