@@ -317,20 +317,14 @@ void loop() {
     DynamicJsonDocument doc(capacity);
 
     JsonObject Outfeed = doc.createNestedObject("Outfeed");
-    sprintf(Data, "%ld", OutfeedMeter.getActualPower());
-    Outfeed["actualPower"] = Data;
-    sprintf(Data, "%lf", OutfeedMeter.getTotalConsumption());
-    Outfeed["totalConsumption"] = Data;
-    sprintf(Data, "%lf", OutfeedMeter.getTotalSupply());
-    Outfeed["totalSupply"] = Data;
-    
+    Outfeed["actualPower"] = OutfeedMeter.getActualPower();
+    Outfeed["totalConsumption"] = OutfeedMeter.getTotalConsumption();
+    Outfeed["totalSupply"] = OutfeedMeter.getTotalSupply();
+
     JsonObject Solar = doc.createNestedObject("Solar");
-    sprintf(Data, "%ld", SolarMeter.getActualPower());
-    Solar["actualPower"] = Data;
-    sprintf(Data, "%lf", SolarMeter.getTotalConsumption());
-    Solar["totalConsumption"] = Data;
-    sprintf(Data, "%lf", SolarMeter.getTotalSupply());
-    Solar["totalSupply"] = Data;
+    Solar["actualPower"] = SolarMeter.getActualPower();
+    Solar["totalConsumption"] = SolarMeter.getTotalConsumption();
+    Solar["totalSupply"] = SolarMeter.getTotalSupply();
 
     // Serialize JSON with overflow checking
     size_t bytesWritten = serializeJson(doc, Data, sizeof(Data));

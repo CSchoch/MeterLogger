@@ -132,7 +132,11 @@ void SMLParser::findStartSequence()
     {
       if (inByte == startSequence[startIndex])
       {
-        smlMessage[startIndex] = inByte;
+        // Bounds check (should never trigger, but added for safety)
+        if (startIndex < sizeof(smlMessage))
+        {
+          smlMessage[startIndex] = inByte;
+        }
         startIndex++;
         cycles = 2;
         if (startIndex == sizeof(startSequence))
@@ -160,6 +164,16 @@ void SMLParser::findStopSequence()
 
     DEBUGPRINTLNVERBOSE(inByte, HEX);
 
+    // Check bounds before writing to buffer
+    if (smlIndex >= sizeof(smlMessage) - 3)
+    {
+      DEBUGPRINTLNWARNING("SML buffer overflow detected, resetting");
+      smlIndex = 0;
+      stopIndex = 0;
+      stage = 0;
+      break;
+    }
+
     smlMessage[smlIndex++] = inByte;
 
     while (cycles <= 1)
@@ -177,6 +191,15 @@ void SMLParser::findStopSequence()
           // One for the amount of fillbytes plus two bytes for calculating CRC.
           for (int c = 0; c < 3; c++)
           {
+            // Bounds check before reading additional bytes
+            if (smlIndex >= sizeof(smlMessage))
+            {
+              DEBUGPRINTLNWARNING("SML buffer overflow in stop sequence, resetting");
+              smlIndex = 0;
+              stopIndex = 0;
+              stage = 0;
+              return;
+            }
             smlMessage[smlIndex++] = MySerial->read();
           }
           smlIndex--;
@@ -187,13 +210,6 @@ void SMLParser::findStopSequence()
         stopIndex = 0;
         cycles++;
       }
-    }
-    if (smlIndex >= sizeof(smlMessage) - 3)
-    {
-      smlIndex = 0;
-      stopIndex = 0;
-      stage = 0;
-      break;
     }
   }
 }
@@ -233,6 +249,13 @@ int SMLParser::findSequence(const byte *message, const byte *sequence, int sizeO
 
 long SMLParser::getLong(const byte *message, int pos)
 {
+  // Bounds check: ensure we can read 4 bytes
+  if (pos + 3 >= sizeof(smlMessage))
+  {
+    DEBUGPRINTLNWARNING("getLong: Buffer overflow prevented");
+    return 0;
+  }
+
   long value;
   value = smlMessage[pos];
   for (int i = 1; i < 4; i++)
@@ -245,6 +268,13 @@ long SMLParser::getLong(const byte *message, int pos)
 
 unsigned long SMLParser::getULong(const byte *message, int pos)
 {
+  // Bounds check: ensure we can read 4 bytes
+  if (pos + 3 >= sizeof(smlMessage))
+  {
+    DEBUGPRINTLNWARNING("getULong: Buffer overflow prevented");
+    return 0;
+  }
+
   unsigned long value;
   value = smlMessage[pos];
   for (int i = 1; i < 4; i++)
@@ -257,6 +287,13 @@ unsigned long SMLParser::getULong(const byte *message, int pos)
 
 unsigned long long SMLParser::getULongLong(const byte *message, int pos)
 {
+  // Bounds check: ensure we can read 8 bytes
+  if (pos + 7 >= sizeof(smlMessage))
+  {
+    DEBUGPRINTLNWARNING("getULongLong: Buffer overflow prevented");
+    return 0;
+  }
+
   unsigned long long value;
   value = smlMessage[pos];
   for (int i = 1; i < 8; i++)
